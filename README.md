@@ -4,7 +4,7 @@ This project is a Pinterest Recipe Scraper that extracts recipe URLs from a Pint
 
 ## Project Structure
 
-pinterest-scraper/
+pinterest-recipe-scraper/
 │
 ├── src/
 │ ├── pinterest.js
