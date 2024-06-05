@@ -34,20 +34,24 @@ pinterest-recipe-scraper/
    cd pinterest-recipe-scraper
 
 2. Install the dependencies:
+    ```bash
     npm install
 
 ## Usage
-1. Step 1: Run the Pinterest scraper to get recipe URLs from a Pinterest board.
+1. Run the Pinterest scraper to get recipe URLs from a Pinterest board.
+    ```bash
     node src/pinterest.js
 
 This will generate external_urls.json in the src/data directory.
 
-2. Step 2: Convert the URLs to markdown format.
+2. Convert the URLs to markdown format.
+    ```bash
     node src/urls_to_markdown.js
 
 This will generate recipes_markdown.json in the src/data directory.
 
-3. Step 3: Parse the markdown to extract ingredients.
+3. Parse the markdown to extract ingredients.
+    ```bash
     node src/markdown_to_ingredients.js
 
 This will generate recipes_ingredients.json in the src/data directory.
