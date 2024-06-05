@@ -42,19 +42,19 @@ pinterest-recipe-scraper/
     ```bash
     node src/pinterest.js
 
-This will generate external_urls.json in the src/data directory.
+    This will generate external_urls.json in the src/data directory.
 
 2. Convert the URLs to markdown format.
     ```bash
     node src/urls_to_markdown.js
 
-This will generate recipes_markdown.json in the src/data directory.
+    This will generate recipes_markdown.json in the src/data directory.
 
 3. Parse the markdown to extract ingredients.
     ```bash
     node src/markdown_to_ingredients.js
 
-This will generate recipes_ingredients.json in the src/data directory.
+    This will generate recipes_ingredients.json in the src/data directory.
 
 ## Files
     src/pinterest.js: Fetches recipe URLs from a Pinterest board and saves them in external_urls.json.
