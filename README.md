@@ -36,7 +36,7 @@ pinterest-recipe-scraper/
 2. Install the dependencies:
     npm install
 
-Usage
+## Usage
 1. Step 1: Run the Pinterest scraper to get recipe URLs from a Pinterest board.
     node src/pinterest.js
 
@@ -52,18 +52,18 @@ This will generate recipes_markdown.json in the src/data directory.
 
 This will generate recipes_ingredients.json in the src/data directory.
 
-Files
+## Files
     src/pinterest.js: Fetches recipe URLs from a Pinterest board and saves them in external_urls.json.
     src/urls_to_markdown.js: Converts the recipe URLs to markdown format and saves them in recipes_markdown.json.
     src/markdown_to_ingredients.js: Parses the markdown to extract ingredients and saves them in recipes_ingredients.json.
 
-Data
+## Data
     data/external_urls.json: Contains the list of recipe URLs fetched from Pinterest.
     data/recipes_markdown.json: Contains the markdown content of the recipes.
     data/recipes_ingredients.json: Contains the extracted ingredients from the markdown.
 
 
-Acknowledgements
+## Acknowledgements
     Puppeteer for access to Convert URL to MarkDown
     Lodash for utility functions
     Axios for HTTP requests
