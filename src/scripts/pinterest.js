@@ -2,6 +2,7 @@ const axios = require('axios');
 const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
+const puppeteer = require('puppeteer');
 
 async function getBoardId(boardUrl, cookie) {
     const response = await axios.get(`https://www.pinterest.com${boardUrl}`, {
@@ -20,6 +21,24 @@ async function getBoardId(boardUrl, cookie) {
     }
 
     throw new Error('Board ID not found');
+}
+
+async function getSessionCookie() {
+    const browser = await puppeteer.launch({ headless: false });
+    const page = await browser.newPage();
+    await page.goto('https://www.pinterest.com/login/', { waitUntil: 'networkidle2' });
+
+    console.log('Please log in to Pinterest.');
+
+    // Wait for the user to log in
+    await page.waitForNavigation({ waitUntil: 'networkidle2' });
+
+    // Get cookies
+    const cookies = await page.cookies();
+    await browser.close();
+
+    const sessionCookie = cookies.find(cookie => cookie.name === 'session').value;
+    return sessionCookie;
 }
 
 async function paginatePinterestBoard(boardUrl, cookie) {
@@ -96,6 +115,21 @@ async function paginatePinterestBoard(boardUrl, cookie) {
     console.log(`External URLs have been saved to ${outputPath}`);
 }
 
-const boardUrl = '/heyannarene/recipes/';
-const cookie = '31ee87d12e50f869b301d5f2e50469a6';
-paginatePinterestBoard(boardUrl, cookie);
+async function main() {
+    const { default: inquirer } = await import('inquirer');
+
+    const answers = await inquirer.prompt([
+        {
+            type: 'input',
+            name: 'boardUrl',
+            message: 'Enter the Pinterest board URL:',
+        },
+    ]);
+
+    const boardUrl = answers.boardUrl;
+    const cookie = await getSessionCookie();
+
+    await paginatePinterestBoard(boardUrl, cookie);
+}
+
+main();
