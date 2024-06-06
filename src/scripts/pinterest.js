@@ -1,18 +1,39 @@
+const puppeteer = require('puppeteer');
 const axios = require('axios');
-const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
-const puppeteer = require('puppeteer');
+
+async function getSessionCookie() {
+    const browser = await puppeteer.launch({ headless: false });
+    const page = await browser.newPage();
+
+    await page.goto('https://www.pinterest.com/login/', { waitUntil: 'networkidle2' });
+
+    console.log('Please log in to Pinterest.');
+
+    await page.waitForNavigation({ waitUntil: 'networkidle2' });
+
+    const cookies = await page.cookies();
+    await browser.close();
+
+    console.log('All cookies:', cookies);
+
+    const sessionCookie = cookies.find(cookie => cookie.name === 'csrftoken').value;
+    if (!sessionCookie) {
+        throw new Error('Session cookie not found');
+    }
+
+    return sessionCookie;
+}
 
 async function getBoardId(boardUrl, cookie) {
-    const response = await axios.get(`https://www.pinterest.com${boardUrl}`, {
+    const response = await axios.get(boardUrl, {
         headers: {
-            cookie: cookie,
+            cookie: `csrftoken=${cookie}`,
         },
     });
 
-    const boardIdRegex =
-        /<script id="__PWS_INITIAL_PROPS__" type="application\/json">(.*?)<\/script>/;
+    const boardIdRegex = /<script id="__PWS_INITIAL_PROPS__" type="application\/json">(.*?)<\/script>/;
     const match = response.data.match(boardIdRegex);
     if (match) {
         const initialProps = JSON.parse(match[1]);
@@ -21,24 +42,6 @@ async function getBoardId(boardUrl, cookie) {
     }
 
     throw new Error('Board ID not found');
-}
-
-async function getSessionCookie() {
-    const browser = await puppeteer.launch({ headless: false });
-    const page = await browser.newPage();
-    await page.goto('https://www.pinterest.com/login/', { waitUntil: 'networkidle2' });
-
-    console.log('Please log in to Pinterest.');
-
-    // Wait for the user to log in
-    await page.waitForNavigation({ waitUntil: 'networkidle2' });
-
-    // Get cookies
-    const cookies = await page.cookies();
-    await browser.close();
-
-    const sessionCookie = cookies.find(cookie => cookie.name === 'session').value;
-    return sessionCookie;
 }
 
 async function paginatePinterestBoard(boardUrl, cookie) {
@@ -74,7 +77,7 @@ async function paginatePinterestBoard(boardUrl, cookie) {
                 headers: {
                     accept: 'application/json, text/javascript, */*, q=0.01',
                     'accept-language': 'en-US,en;q=0.9',
-                    cookie: cookie,
+                    cookie: `csrftoken=${cookie}`,
                     dnt: '1',
                     priority: 'u=1, i',
                     referer: 'https://www.pinterest.com/',
@@ -96,40 +99,37 @@ async function paginatePinterestBoard(boardUrl, cookie) {
                     'x-pinterest-source-url': boardUrl,
                     'x-requested-with': 'XMLHttpRequest',
                 },
-            },
+            }
         );
 
-        const pins = _.get(response, 'data.resource_response.data', []);
-        const externalUrls = pins.map((pin) => pin.link).filter((url) => url !== null);
+        const pins = response.data.resource_response.data || [];
+        const externalUrls = pins.map(pin => pin.link).filter(url => url !== null);
         console.log(externalUrls);
 
         allExternalUrls.push(...externalUrls);
 
-        bookmark = _.get(response, 'data.resource_response.bookmark');
+        bookmark = response.data.resource_response.bookmark;
         hasMore = !!bookmark;
     }
 
-    // Write the URLs to external_urls.json
     const outputPath = path.join(__dirname, '../data/external_urls.json');
     fs.writeFileSync(outputPath, JSON.stringify(allExternalUrls, null, 2));
     console.log(`External URLs have been saved to ${outputPath}`);
 }
 
 async function main() {
-    const { default: inquirer } = await import('inquirer');
-
-    const answers = await inquirer.prompt([
+    const inquirer = await import('inquirer');
+    const { boardUrl } = await inquirer.default.prompt([
         {
             type: 'input',
             name: 'boardUrl',
             message: 'Enter the Pinterest board URL:',
+            validate: input => input.startsWith('https://') || 'Please enter a valid URL starting with https://',
         },
     ]);
 
-    const boardUrl = answers.boardUrl;
-    const cookie = await getSessionCookie();
-
-    await paginatePinterestBoard(boardUrl, cookie);
+    const sessionCookie = await getSessionCookie();
+    await paginatePinterestBoard(boardUrl, sessionCookie);
 }
 
-main();
+main().catch(error => console.error('Error:', error));
