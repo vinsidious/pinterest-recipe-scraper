@@ -5709,7 +5709,17 @@
   },
   {
     "url": "http://lifecurrents.dw2.net/three-cheese-pesto-avocado-grilled-cheese-sandwich/",
-    "ingredients": "Failed to parse"
+    "ingredients": [
+      "2 slices seed wheat bread",
+      "salted butter softened",
+      "Prepared pesto",
+      "2 slices Sliced Pepper Jack Cheese",
+      "½ avocado sliced into thin slices",
+      "2 slices Sliced Swiss Cheese",
+      "2 slices Sliced Provolone Cheese",
+      "Spread a thin layer of butter on one side of the bread slices. This buttered side will be the outside of your sandwich. Spread a thicker layer of pesto on the inside of one of the bread slices making sure to get pesto all over the bread slice. Top the pesto with Pepper Jack. Place the avocado slices on top. Top with Swiss Cheese and Provolone Cheese. Place the other bread slice, buttered side out, on top. Press together gently.",
+      "Heat frying pan over low heat, and add the sandwich, cook until bread is golden brown. Flip the sandwich over, and continue to cook the second side until it’s golden brown, and the cheese is nice and melty."
+    ]
   },
   {
     "url": "https://therealfoodrds.com/butternut-squash-and-apple-hash-with-sausage/",

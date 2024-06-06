@@ -7,8 +7,11 @@
   },
   "dependencies": {
     "axios": "^1.7.2",
+    "body-parser": "^1.20.2",
     "cheerio": "^1.0.0-rc.12",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.5",
+    "express": "^4.19.2",
     "inquirer": "^9.2.23",
     "jsdom": "^24.1.0",
     "lodash": "^4.17.21",

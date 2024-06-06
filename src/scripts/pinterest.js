@@ -118,15 +118,11 @@ async function paginatePinterestBoard(boardUrl, cookie) {
 }
 
 async function main() {
-    const inquirer = await import('inquirer');
-    const { boardUrl } = await inquirer.default.prompt([
-        {
-            type: 'input',
-            name: 'boardUrl',
-            message: 'Enter the Pinterest board URL:',
-            validate: input => input.startsWith('https://') || 'Please enter a valid URL starting with https://',
-        },
-    ]);
+    const boardUrl = process.argv[2];
+    if (!boardUrl) {
+        console.error('Please provide a Pinterest board URL.');
+        process.exit(1);
+    }
 
     const sessionCookie = await getSessionCookie();
     await paginatePinterestBoard(boardUrl, sessionCookie);
