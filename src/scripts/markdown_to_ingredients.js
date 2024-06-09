@@ -1,6 +1,13 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+<<<<<<< HEAD
+=======
+
+// Define __dirname for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+>>>>>>> refactor/optimize-url-to-markdown
 
 // Define __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
