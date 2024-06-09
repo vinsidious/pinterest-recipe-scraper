@@ -4,15 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pinterest Recipe Scraper</title>
-    <script defer src="script.js"></script>
 </head>
 <body>
     <h1>Pinterest Recipe Scraper</h1>
-    <form id="scrape-form">
-        <label for="url">Pinterest Board URL:</label>
-        <input type="url" id="url" name="url" required>
+    <form id="scrapeForm">
+        <label for="boardUrl">Enter Pinterest Board URL:</label>
+        <input type="text" id="boardUrl" name="boardUrl" required>
         <button type="submit">Scrape Recipes</button>
     </form>
-    <div id="message"></div>
+    <div id="status"></div>
+
+    <script>
+        document.getElementById('scrapeForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const url = document.getElementById('boardUrl').value;
+
+            try {
+                const response = await fetch('/scrape', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Scraping failed');
+                }
+
+                console.log(data.message);
+                document.getElementById('status').innerText = data.message;
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('status').innerText = `Error: ${error.message}`;
+            }
+        });
+    </script>
 </body>
 </html>

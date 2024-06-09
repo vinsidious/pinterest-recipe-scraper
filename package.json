@@ -1,10 +1,10 @@
 {
   "name": "pinterest-scraper",
   "version": "1.0.0",
-  "main": "src/pinterest.js",
+  "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "node src/pinterest.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "axios": "^1.7.2",

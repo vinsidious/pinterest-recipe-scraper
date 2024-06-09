@@ -1,28 +1,27 @@
-document.getElementById('scrape-form').addEventListener('submit', async function (event) {
+document.getElementById('scrapeForm').addEventListener('submit', async (event) => {
     event.preventDefault();
 
-    const url = document.getElementById('url').value;
-    const messageDiv = document.getElementById('message');
+    const url = document.getElementById('boardUrl').value;
 
     try {
         const response = await fetch('/scrape', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ url }),
+            body: JSON.stringify({ url })
         });
 
+        const data = await response.json();
+
         if (!response.ok) {
-            throw new Error('Network response was not ok');
+            throw new Error(data.error || 'Scraping failed');
         }
 
-        const urls = await response.json();
-        messageDiv.innerHTML = '<h3>Scraping Completed!</h3><p>Scraped URLs:</p><ul>' +
-            urls.map(url => `<li><a href="${url}" target="_blank">${url}</a></li>`).join('') +
-            '</ul>';
+        console.log(data.message);
+        document.getElementById('status').innerText = data.message;
     } catch (error) {
         console.error('Error:', error);
-        messageDiv.textContent = 'Error: ' + error.message;
+        document.getElementById('status').innerText = `Error: ${error.message}`;
     }
 });
