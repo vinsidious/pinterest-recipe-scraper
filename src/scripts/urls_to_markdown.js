@@ -44,7 +44,7 @@ async function convertUrlToMarkdown(browser, url) {
 
         // Wait for the output to be generated
         console.log('Waiting for the result...');
-        await page.waitForSelector('textarea#text', { timeout: 30000 });
+        await page.waitForSelector('textarea#text', { timeout: 60000 });
 
         // Retry mechanism in case the content is not immediately available
         let attempts = 5;
@@ -81,7 +81,7 @@ async function main() {
     const queue = new PQueue({ concurrency: 10 });  // Limit concurrency to 10 tasks at a time
     let successCount = 0;
 
-    const browser = await puppeteer.launch({ headless: true, protocolTimeout: 60000 });  // Launch a headless browser instance and increase protocol timeout to 60 seconds
+    const browser = await puppeteer.launch({ headless: true, protocolTimeout: 120000 });  // Launch a headless browser instance and increase protocol timeout to 120 seconds
 
     try {
         for (const url of urls) {
