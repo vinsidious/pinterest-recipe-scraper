@@ -1,52 +1,38 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const recipesPath = path.join(__dirname, '../data', 'recipes_markdown.json');
-const outputPath = path.join(__dirname, '../data', 'recipes_ingredients.json');
+// Define __dirname for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const parseIngredients = (markdown) => {
-  const ingredients = [];
-  const ingredientLines = markdown.match(/^\*\s.*$/gm);
+// Function to extract ingredients from markdown (mock example)
+function extractIngredients(markdown) {
+    // Mock implementation of extracting ingredients
+    // In real implementation, parse the markdown content
+    return markdown.split('\n').filter(line => line.includes('ingredient'));
+}
 
-  if (ingredientLines) {
-    ingredientLines.forEach(line => {
-      const cleanedLine = line.replace(/^\*\s*/, '').trim();
-      ingredients.push(cleanedLine);
+// Main function to process markdown files and extract ingredients
+async function main() {
+    const markdownPath = path.join(__dirname, '../data', 'recipes_markdown.json');
+    const outputPath = path.join(__dirname, '../data', 'recipes_ingredients.json');
+
+    const markdownData = JSON.parse(fs.readFileSync(markdownPath, 'utf8'));
+    const results = [];
+
+    markdownData.forEach(entry => {
+        if (entry.markdown && entry.markdown !== 'Failed to convert') {
+            const ingredients = extractIngredients(entry.markdown);
+            results.push({ url: entry.url, ingredients });
+        } else {
+            results.push({ url: entry.url, ingredients: [] });
+        }
     });
-  } else {
-    return "Failed to parse";
-  }
 
-  return ingredients;
-};
+    fs.writeFileSync(outputPath, JSON.stringify(results, null, 2));
+    console.log(`Ingredients have been saved to ${outputPath}`);
+}
 
-fs.readFile(recipesPath, 'utf8', (err, data) => {
-  if (err) {
-    console.error('Error reading recipes file:', err);
-    return;
-  }
-
-  let recipes;
-  try {
-    recipes = JSON.parse(data);
-  } catch (parseError) {
-    console.error('Error parsing JSON:', parseError);
-    return;
-  }
-
-  const parsedRecipes = recipes.map(recipe => {
-    const ingredients = parseIngredients(recipe.markdown);
-    return {
-      url: recipe.url,
-      ingredients: ingredients.length > 0 ? ingredients : "Failed to parse"
-    };
-  });
-
-  fs.writeFile(outputPath, JSON.stringify(parsedRecipes, null, 2), 'utf8', (writeError) => {
-    if (writeError) {
-      console.error('Error writing parsed ingredients file:', writeError);
-      return;
-    }
-    console.log('Parsed ingredients file saved successfully.');
-  });
-});
+// Execute the main function
+main().catch(error => console.error('Error:', error));

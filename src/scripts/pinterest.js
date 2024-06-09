@@ -1,7 +1,11 @@
-const puppeteer = require('puppeteer');
-const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
+import puppeteer from 'puppeteer';
+import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function getSessionCookie() {
     const browser = await puppeteer.launch({ headless: false });
@@ -117,15 +121,15 @@ async function paginatePinterestBoard(boardUrl, cookie) {
     console.log(`External URLs have been saved to ${outputPath}`);
 }
 
-async function main() {
-    const boardUrl = process.argv[2];
-    if (!boardUrl) {
-        console.error('Please provide a Pinterest board URL.');
-        process.exit(1);
-    }
-
+async function main(boardUrl) {
     const sessionCookie = await getSessionCookie();
     await paginatePinterestBoard(boardUrl, sessionCookie);
 }
 
-main().catch(error => console.error('Error:', error));
+const boardUrl = process.argv[2];
+if (!boardUrl) {
+    console.error('Please provide a Pinterest board URL.');
+    process.exit(1);
+}
+
+main(boardUrl).catch(error => console.error('Error:', error));
