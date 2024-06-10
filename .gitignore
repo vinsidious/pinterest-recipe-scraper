@@ -1,1 +1,5 @@
 .env
+src/data/error_log.json
+src/data/external_urls.json
+src/data/recipes_ingredients.json
+src/data/recipes_markdown.json
