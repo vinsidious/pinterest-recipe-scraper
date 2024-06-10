@@ -81,7 +81,7 @@ async function main() {
     const queue = new PQueue({ concurrency: 10 });  // Limit concurrency to 10 tasks at a time
     let successCount = 0;
 
-    const browser = await puppeteer.launch({ headless: true, protocolTimeout: 120000 });  // Launch a headless browser instance and increase protocol timeout to 120 seconds
+    const browser = await puppeteer.launch({ headless: true, protocolTimeout: 180000 });  // Launch a headless browser instance and increase protocol timeout to 180 seconds
 
     try {
         for (const url of urls) {

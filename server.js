@@ -51,7 +51,6 @@ app.post('/scrape', (req, res) => {
             const urls = JSON.parse(data);
             res.status(200).json(urls);
 
-            // Log that the URLs have been read successfully
             console.log('External URLs read successfully');
 
             console.log('Executing markdown conversion script');
@@ -98,7 +97,7 @@ app.post('/scrape', (req, res) => {
                         return;
                     }
 
-                    res.status(200).json({ message: 'Scraping and conversion complete' });
+                    console.log('Scraping and conversion complete');
                 });
             });
         });
