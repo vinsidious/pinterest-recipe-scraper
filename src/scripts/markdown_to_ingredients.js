@@ -1,6 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { remark } from 'remark';
+import remarkParse from 'remark-parse';
+import { visit } from 'unist-util-visit';
 
 // Define __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -11,18 +14,24 @@ const outputPath = path.join(__dirname, '../data', 'recipes_ingredients.json');
 
 const parseIngredients = (markdown) => {
   const ingredients = [];
-  const ingredientLines = markdown.match(/^\*\s.*$/gm);
 
-  if (ingredientLines) {
-    ingredientLines.forEach(line => {
-      const cleanedLine = line.replace(/^\*\s*/, '').trim();
-      ingredients.push(cleanedLine);
-    });
-  } else {
-    return "Failed to parse";
-  }
+  const tree = remark().use(remarkParse).parse(markdown);
+  visit(tree, 'listItem', (node) => {
+    console.log("Visiting node:", node);
+    if (node.children) {
+      const paragraph = node.children.find(child => child.type === 'paragraph');
+      if (paragraph) {
+        const textNode = paragraph.children.find(child => child.type === 'text');
+        if (textNode) {
+          const cleanedLine = textNode.value.trim();
+          ingredients.push(cleanedLine);
+        }
+      }
+    }
+  });
 
-  return ingredients;
+  console.log("Parsed ingredients:", ingredients);
+  return ingredients.length > 0 ? ingredients : "Failed to parse";
 };
 
 fs.readFile(recipesPath, 'utf8', (err, data) => {
@@ -40,10 +49,11 @@ fs.readFile(recipesPath, 'utf8', (err, data) => {
   }
 
   const parsedRecipes = recipes.map(recipe => {
+    console.log("Processing recipe:", recipe);
     const ingredients = parseIngredients(recipe.markdown);
     return {
       url: recipe.url,
-      ingredients: ingredients.length > 0 ? ingredients : "Failed to parse"
+      ingredients: ingredients
     };
   });
 
