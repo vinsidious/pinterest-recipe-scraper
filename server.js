@@ -49,9 +49,9 @@ app.post('/scrape', (req, res) => {
 
             console.log('Sending scraped URLs to client');
             const urls = JSON.parse(data);
-            res.status(200).json(urls);
 
             console.log('External URLs read successfully');
+            res.status(200).json(urls);
 
             console.log('Executing markdown conversion script');
             const markdownCommand = `node ${path.join(__dirname, 'src/scripts/urls_to_markdown.js')}`;
@@ -97,7 +97,7 @@ app.post('/scrape', (req, res) => {
                         return;
                     }
 
-                    console.log('Scraping and conversion complete');
+                    res.status(200).json({ message: 'Scraping and conversion complete' });
                 });
             });
         });
