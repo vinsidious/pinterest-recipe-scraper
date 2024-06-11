@@ -26,7 +26,7 @@ app.post('/scrape', (req, res) => {
         return res.status(400).send('Board URL is required');
     }
 
-    console.log('Received board URL:', boardUrl);
+    console.log('Received board URL: ${boardUrl}');
 
     const command = `node ${path.join(__dirname, 'src/scripts/pinterest.js')} ${boardUrl}`;
     console.log('Executing command:', command);
@@ -49,8 +49,8 @@ app.post('/scrape', (req, res) => {
 
             console.log('Sending scraped URLs to client');
             const urls = JSON.parse(data);
-            res.status(200).json(urls);
 
+            // Log that the URLs have been read successfully
             console.log('External URLs read successfully');
 
             console.log('Executing markdown conversion script');
@@ -97,7 +97,7 @@ app.post('/scrape', (req, res) => {
                         return;
                     }
 
-                    console.log('Scraping and conversion complete');
+                    res.status(200).json({ message: 'Scraping and conversion complete' });
                 });
             });
         });
