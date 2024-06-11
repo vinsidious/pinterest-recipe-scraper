@@ -1,6 +1,6 @@
 import express from 'express';
 import bodyParser from 'body-parser';
-import { exec } from 'child_process';
+import { spawn } from 'child_process'; // Use spawn instead of exec
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -26,20 +26,29 @@ app.post('/scrape', (req, res) => {
         return res.status(400).send('Board URL is required');
     }
 
-    console.log('Received board URL: ${boardUrl}');
+    console.log(`Received board URL: ${boardUrl}`);
 
-    const command = `node ${path.join(__dirname, 'src/scripts/pinterest.js')} ${boardUrl}`;
+    const command = `node ${path.join(__dirname, 'src/scripts/pinterest.js')}`;
     console.log('Executing command:', command);
 
-    exec(command, (error, stdout, stderr) => {
-        if (error) {
-            console.error(`Error executing script: ${stderr}`);
-            return res.status(500).send(`Error executing script: ${stderr}`);
+    const pinterestProcess = spawn('node', [path.join(__dirname, 'src/scripts/pinterest.js'), boardUrl]);
+
+    pinterestProcess.stdout.on('data', (data) => {
+        console.log(`Pinterest Process stdout: ${data}`);
+    });
+
+    pinterestProcess.stderr.on('data', (data) => {
+        console.error(`Pinterest Process stderr: ${data}`);
+    });
+
+    pinterestProcess.on('close', (code) => {
+        console.log(`Pinterest Process exited with code ${code}`);
+
+        if (code !== 0) {
+            console.error(`Pinterest script failed with code ${code}`);
+            return res.status(500).send(`Pinterest script failed with code ${code}`);
         }
 
-        console.log(`stdout: ${stdout}`);
-
-        // Read the scraped URLs from the file and send them back as response
         const outputPath = path.join(__dirname, 'src/data/external_urls.json');
         fs.readFile(outputPath, 'utf8', (err, data) => {
             if (err) {
@@ -47,17 +56,8 @@ app.post('/scrape', (req, res) => {
                 return res.status(500).send(`Error reading output file: ${err}`);
             }
 
-            console.log('Sending scraped URLs to client');
-            const urls = JSON.parse(data);
-
-            // Log that the URLs have been read successfully
-            console.log('External URLs read successfully');
-
             console.log('Executing markdown conversion script');
-            const markdownCommand = `node ${path.join(__dirname, 'src/scripts/urls_to_markdown.js')}`;
-            console.log('Executing script:', markdownCommand);
-
-            const markdownProcess = exec(markdownCommand);
+            const markdownProcess = spawn('node', [path.join(__dirname, 'src/scripts/urls_to_markdown.js')]);
 
             markdownProcess.stdout.on('data', (data) => {
                 console.log(`Markdown Process stdout: ${data}`);
@@ -76,10 +76,7 @@ app.post('/scrape', (req, res) => {
                 }
 
                 console.log('Executing ingredient extraction script');
-                const ingredientsCommand = `node ${path.join(__dirname, 'src/scripts/markdown_to_ingredients.js')}`;
-                console.log('Executing script:', ingredientsCommand);
-
-                const ingredientsProcess = exec(ingredientsCommand);
+                const ingredientsProcess = spawn('node', [path.join(__dirname, 'src/scripts/markdown_to_ingredients.js')]);
 
                 ingredientsProcess.stdout.on('data', (data) => {
                     console.log(`Ingredients Process stdout: ${data}`);
