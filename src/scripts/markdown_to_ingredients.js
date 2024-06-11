@@ -32,6 +32,9 @@ const calculateTokens = (text) => {
   return tokens.length;
 };
 
+let rateLimitErrors = 0;
+let contextLengthErrors = 0;
+
 // Error logging function
 const logError = (error, recipeUrl) => {
   const logEntry = {
@@ -40,14 +43,14 @@ const logError = (error, recipeUrl) => {
     timestamp: new Date().toISOString(),
   };
 
-  const logFilePath = path.join(__dirname, '../logs', 'api_error_log.json');
-  const logDir = path.dirname(logFilePath);
+  errorLog.push(logEntry);
+  fs.writeFileSync(errorLogPath, JSON.stringify(errorLog, null, 2), 'utf8');
 
-  if (!fs.existsSync(logDir)) {
-    fs.mkdirSync(logDir);
+  if (error.message.includes('Rate limit reached')) {
+    rateLimitErrors++;
+  } else if (error.message.includes('maximum context length')) {
+    contextLengthErrors++;
   }
-
-  fs.appendFileSync(logFilePath, JSON.stringify(logEntry, null, 2) + ',\n', 'utf8');
 };
 
 // Function to use OpenAI API to parse ingredients
@@ -85,6 +88,8 @@ const parseIngredients = async (markdown, recipeUrl) => {
 };
 
 const processMarkdown = async () => {
+  const startTime = Date.now();
+
   try {
     console.log('Reading recipes from file...');
     const data = fs.readFileSync(path.join(__dirname, '../data', 'recipes_markdown.json'), 'utf8');
@@ -111,8 +116,18 @@ const processMarkdown = async () => {
     console.log('Writing parsed ingredients to file...');
     fs.writeFileSync(path.join(__dirname, '../data', 'recipes_ingredients.json'), JSON.stringify(parsedRecipes, null, 2), 'utf8');
     console.log('Parsed ingredients file saved successfully.');
+
   } catch (error) {
     console.error('Error processing markdown:', error);
+  } finally {
+    const endTime = Date.now();
+    const duration = (endTime - startTime) / 1000; // in seconds
+    const minutes = Math.floor(duration / 60);
+    const seconds = Math.floor(duration % 60);
+    
+    console.log(`Total process time: ${minutes} minutes and ${seconds} seconds`);
+    console.log(`Total rate limit errors: ${rateLimitErrors}`);
+    console.log(`Total context length errors: ${contextLengthErrors}`);
   }
 };
 

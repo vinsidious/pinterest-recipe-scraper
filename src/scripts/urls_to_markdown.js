@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Error log path
-const errorLogPath = path.join(__dirname, '../data', 'error_log.json');
+const errorLogPath = path.join(__dirname, '../logs', 'markdown_error_log.json');
 const errorLog = [];
 
 function logError(url, error) {
