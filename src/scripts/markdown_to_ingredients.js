@@ -4,8 +4,6 @@ import dotenv from 'dotenv';
 import { OpenAI } from 'openai';
 import { fileURLToPath } from 'url';
 import Bottleneck from 'bottleneck';
-import redis from 'redis';
-import { promisify } from 'util';
 
 // Define __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -18,20 +16,6 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Redis client setup
-const redisClient = redis.createClient();
-const getAsync = promisify(redisClient.get).bind(redisClient);
-const setAsync = promisify(redisClient.set).bind(redisClient);
-
-redisClient.on('error', (err) => {
-  console.error('Redis client error:', err);
-});
-
-redisClient.on('ready', () => {
-  console.log('Redis client connected');
-  processMarkdown();  // Start processing once Redis is ready
-});
-
 // Bottleneck setup
 const limiter = new Bottleneck({
   maxConcurrent: 5,
@@ -40,16 +24,10 @@ const limiter = new Bottleneck({
 
 // Function to use OpenAI API to parse ingredients
 const parseIngredients = limiter.wrap(async (markdown) => {
-  const cacheKey = `ingredients:${markdown}`;
-  
-  // Check cache first
-  const cachedIngredients = await getAsync(cacheKey);
-  if (cachedIngredients) {
-    console.log(`Cache hit for key: ${cacheKey}`);
-    return JSON.parse(cachedIngredients);
-  }
-
   try {
+    console.log(`Calling OpenAI API for markdown content...`);
+    
+    // Call OpenAI API
     const response = await openai.completions.create({
       model: "gpt-3.5-turbo-instruct",
       prompt: `Extract the list of ingredients from the following markdown:\n\n${markdown}\n\nIngredients:`,
@@ -59,11 +37,9 @@ const parseIngredients = limiter.wrap(async (markdown) => {
       temperature: 0.5,
     });
 
-    const ingredients = response.choices[0].text.trim().split('\n').map(ingredient => ingredient.trim());
+    console.log(`Received response from OpenAI API for markdown content`);
 
-    // Cache the result with an expiration time of 1 hour
-    await setAsync(cacheKey, JSON.stringify(ingredients), 'EX', 3600);
-    console.log(`Cache set for key: ${cacheKey}`);
+    const ingredients = response.choices[0].text.trim().split('\n').map(ingredient => ingredient.trim());
 
     return ingredients;
   } catch (error) {
@@ -80,7 +56,9 @@ const processMarkdown = async () => {
 
     console.log('Processing recipes...');
     const parsedRecipes = await Promise.all(recipes.map(async (recipe) => {
+      console.log(`Processing recipe: ${recipe.url}`);
       const ingredients = await parseIngredients(recipe.markdown);
+      console.log(`Parsed ingredients for recipe: ${recipe.url}`);
       return {
         url: recipe.url,
         ingredients: ingredients.length > 0 ? ingredients : "Failed to parse"
@@ -92,15 +70,8 @@ const processMarkdown = async () => {
     console.log('Parsed ingredients file saved successfully.');
   } catch (error) {
     console.error('Error processing markdown:', error);
-  } finally {
-    // Close the Redis client after all operations are complete
-    redisClient.quit();
-    console.log('Redis client closed.');
   }
 };
 
-// Explicitly connect the Redis client
-redisClient.connect().catch((err) => {
-  console.error('Failed to connect to Redis:', err);
-  process.exit(1);
-});
+// Start processing the markdown recipes
+processMarkdown();
