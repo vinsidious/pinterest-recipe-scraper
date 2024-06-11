@@ -49,7 +49,6 @@ app.post('/scrape', (req, res) => {
 
             console.log('Sending scraped URLs to client');
             const urls = JSON.parse(data);
-            // res.status(200).json(urls);
 
             // Log that the URLs have been read successfully
             console.log('External URLs read successfully');
