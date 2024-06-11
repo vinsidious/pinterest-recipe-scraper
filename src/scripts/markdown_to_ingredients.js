@@ -32,8 +32,26 @@ const calculateTokens = (text) => {
   return tokens.length;
 };
 
+// Error logging function
+const logError = (error, recipeUrl) => {
+  const logEntry = {
+    url: recipeUrl,
+    error: error.message,
+    timestamp: new Date().toISOString(),
+  };
+
+  const logFilePath = path.join(__dirname, '../logs', 'api_error_log.json');
+  const logDir = path.dirname(logFilePath);
+
+  if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir);
+  }
+
+  fs.appendFileSync(logFilePath, JSON.stringify(logEntry, null, 2) + ',\n', 'utf8');
+};
+
 // Function to use OpenAI API to parse ingredients
-const parseIngredients = async (markdown) => {
+const parseIngredients = async (markdown, recipeUrl) => {
   try {
     console.log(`Calling OpenAI API for markdown content...`);
 
@@ -57,9 +75,10 @@ const parseIngredients = async (markdown) => {
       const retryAfter = error.headers['retry-after-ms'] || error.headers['retry-after'] * 1000 || 1000;
       console.log(`Rate limit exceeded. Retrying after ${retryAfter} ms`);
       await new Promise(resolve => setTimeout(resolve, retryAfter));
-      return parseIngredients(markdown);  // Retry the same request
+      return parseIngredients(markdown, recipeUrl);  // Retry the same request
     } else {
       console.error('Error using OpenAI API:', error);
+      logError(error, recipeUrl);
       return "Failed to parse";
     }
   }
@@ -80,7 +99,7 @@ const processMarkdown = async () => {
       
       // Schedule the API call with a token cost
       await limiter.schedule({ weight: tokenCount }, async () => {
-        const ingredients = await parseIngredients(recipe.markdown);
+        const ingredients = await parseIngredients(recipe.markdown, recipe.url);
         console.log(`Parsed ingredients for recipe: ${recipe.url}`);
         parsedRecipes.push({
           url: recipe.url,
