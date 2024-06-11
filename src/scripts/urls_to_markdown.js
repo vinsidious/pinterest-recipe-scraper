@@ -52,7 +52,7 @@ async function convertUrlToMarkdown(browser, url) {
 
         while (attempts > 0 && !markdown.trim()) {
             console.log(`Attempt ${6 - attempts}: Waiting for Markdown content...`);
-            await new Promise(resolve => setTimeout(resolve, 10000));  // Wait for 10 seconds
+            await new Promise(resolve => setTimeout(resolve, 5000));  // Wait for 5 seconds
             markdown = await page.evaluate(() => {
                 return document.querySelector('textarea#text').value;
             });
