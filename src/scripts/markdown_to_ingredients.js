@@ -32,8 +32,55 @@ const calculateTokens = (text) => {
   return tokens.length;
 };
 
+// Function to filter non-essential content
+const filterContent = (markdown) => {
+  const filtered = markdown
+    .replace(/!\[.*?\]\(.*?\)/g, '') // Remove images
+    .replace(/<script.*?>.*?<\/script>/g, '') // Remove scripts
+    .replace(/<!--.*?-->/g, ''); // Remove comments
+
+  // Log filtered content
+  const removedContent = markdown.match(/!\[.*?\]\(.*?\)/g) || [];
+  removedContent.push(...(markdown.match(/<script.*?>.*?<\/script>/g) || []));
+  removedContent.push(...(markdown.match(/<!--.*?-->/g) || []));
+
+  if (removedContent.length > 0) {
+    const logPath = path.join(__dirname, '../logs', 'filtered_content_log.json');
+    fs.appendFileSync(logPath, JSON.stringify({ url: markdown.url, removedContent }, null, 2) + ',\n', 'utf8');
+  }
+
+  return filtered;
+};
+
+// Split content into sections that fit within the token limit
+const splitMarkdown = (markdown, tokenLimit) => {
+  const tokenizer = encoding_for_model('gpt-3.5-turbo');
+  const tokens = tokenizer.encode(markdown);
+
+  const sections = [];
+  const buffer = 20; // Adding a buffer of 10 tokens to avoid exceeding the limit
+  const adjustedTokenLimit = tokenLimit - buffer;
+
+  for (let i = 0; i < tokens.length; i += adjustedTokenLimit) {
+    const sectionTokens = tokens.slice(i, i + adjustedTokenLimit);
+    let section = tokenizer.decode(sectionTokens);
+    if (section instanceof Uint8Array) {
+      section = new TextDecoder('utf-8').decode(section);
+    }
+    if (typeof section !== 'string') {
+      console.error(`Decoded section is not a string:`, section);
+      throw new TypeError('Expected section to be a string after decoding');
+    }
+    sections.push(section);
+  }
+
+  return sections;
+};
+
 let rateLimitErrors = 0;
 let contextLengthErrors = 0;
+const errorLogPath = path.join(__dirname, '../logs', 'api_error_log.json');
+const errorLog = [];
 
 // Error logging function
 const logError = (error, recipeUrl) => {
@@ -88,7 +135,7 @@ const parseIngredients = async (markdown, recipeUrl) => {
 };
 
 const processMarkdown = async () => {
-  const startTime = Date.now();
+  const startTime = new Date();
 
   try {
     console.log('Reading recipes from file...');
@@ -100,17 +147,25 @@ const processMarkdown = async () => {
 
     for (const recipe of recipes) {
       console.log(`Processing recipe: ${recipe.url}`);
-      const tokenCount = calculateTokens(recipe.markdown);
+      const filteredMarkdown = filterContent(recipe.markdown);
+      const tokenCount = calculateTokens(filteredMarkdown);
       
-      // Schedule the API call with a token cost
-      await limiter.schedule({ weight: tokenCount }, async () => {
-        const ingredients = await parseIngredients(recipe.markdown, recipe.url);
-        console.log(`Parsed ingredients for recipe: ${recipe.url}`);
-        parsedRecipes.push({
-          url: recipe.url,
-          ingredients: ingredients.length > 0 ? ingredients : "Failed to parse"
+      // Split content if it exceeds token limit
+      const sections = tokenCount > 4097 - 150 ? splitMarkdown(filteredMarkdown, 4097 - 150) : [filteredMarkdown];
+
+      for (const section of sections) {
+        console.log(`Processing section with ${calculateTokens(section)} tokens for recipe: ${recipe.url}`);
+
+        // Schedule the API call with a token cost
+        await limiter.schedule({ weight: calculateTokens(section) }, async () => {
+          const ingredients = await parseIngredients(section, recipe.url);
+          console.log(`Parsed ingredients for recipe: ${recipe.url}`);
+          parsedRecipes.push({
+            url: recipe.url,
+            ingredients: ingredients.length > 0 ? ingredients : "Failed to parse"
+          });
         });
-      });
+      }
     }
 
     console.log('Writing parsed ingredients to file...');
@@ -120,12 +175,12 @@ const processMarkdown = async () => {
   } catch (error) {
     console.error('Error processing markdown:', error);
   } finally {
-    const endTime = Date.now();
+    const endTime = new Date();
     const duration = (endTime - startTime) / 1000; // in seconds
     const minutes = Math.floor(duration / 60);
-    const seconds = Math.floor(duration % 60);
+    const seconds = duration % 60;
     
-    console.log(`Total process time: ${minutes} minutes and ${seconds} seconds`);
+    console.log(`Total process time: ${minutes} minutes and ${seconds.toFixed(2)} seconds`);
     console.log(`Total rate limit errors: ${rateLimitErrors}`);
     console.log(`Total context length errors: ${contextLengthErrors}`);
   }
