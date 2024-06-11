@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { OpenAI } from 'openai';
 import { fileURLToPath } from 'url';
 import Bottleneck from 'bottleneck';
+import { encoding_for_model } from 'tiktoken';
 
 // Define __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -18,15 +19,24 @@ const openai = new OpenAI({
 
 // Bottleneck setup
 const limiter = new Bottleneck({
-  maxConcurrent: 5,
   minTime: 200,
+  reservoir: 90000, // Start with a reservoir of 90,000 tokens
+  reservoirRefreshAmount: 90000,
+  reservoirRefreshInterval: 60 * 1000, // Refill every 60 seconds
 });
 
+// Function to calculate the number of tokens in a given text
+const calculateTokens = (text) => {
+  const tokenizer = encoding_for_model('gpt-3.5-turbo');
+  const tokens = tokenizer.encode(text);
+  return tokens.length;
+};
+
 // Function to use OpenAI API to parse ingredients
-const parseIngredients = limiter.wrap(async (markdown) => {
+const parseIngredients = async (markdown) => {
   try {
     console.log(`Calling OpenAI API for markdown content...`);
-    
+
     // Call OpenAI API
     const response = await openai.completions.create({
       model: "gpt-3.5-turbo-instruct",
@@ -43,10 +53,17 @@ const parseIngredients = limiter.wrap(async (markdown) => {
 
     return ingredients;
   } catch (error) {
-    console.error('Error using OpenAI API:', error);
-    return "Failed to parse";
+    if (error.code === 'rate_limit_exceeded') {
+      const retryAfter = error.headers['retry-after-ms'] || error.headers['retry-after'] * 1000 || 1000;
+      console.log(`Rate limit exceeded. Retrying after ${retryAfter} ms`);
+      await new Promise(resolve => setTimeout(resolve, retryAfter));
+      return parseIngredients(markdown);  // Retry the same request
+    } else {
+      console.error('Error using OpenAI API:', error);
+      return "Failed to parse";
+    }
   }
-});
+};
 
 const processMarkdown = async () => {
   try {
@@ -55,15 +72,22 @@ const processMarkdown = async () => {
     const recipes = JSON.parse(data);
 
     console.log('Processing recipes...');
-    const parsedRecipes = await Promise.all(recipes.map(async (recipe) => {
+    const parsedRecipes = [];
+
+    for (const recipe of recipes) {
       console.log(`Processing recipe: ${recipe.url}`);
-      const ingredients = await parseIngredients(recipe.markdown);
-      console.log(`Parsed ingredients for recipe: ${recipe.url}`);
-      return {
-        url: recipe.url,
-        ingredients: ingredients.length > 0 ? ingredients : "Failed to parse"
-      };
-    }));
+      const tokenCount = calculateTokens(recipe.markdown);
+      
+      // Schedule the API call with a token cost
+      await limiter.schedule({ weight: tokenCount }, async () => {
+        const ingredients = await parseIngredients(recipe.markdown);
+        console.log(`Parsed ingredients for recipe: ${recipe.url}`);
+        parsedRecipes.push({
+          url: recipe.url,
+          ingredients: ingredients.length > 0 ? ingredients : "Failed to parse"
+        });
+      });
+    }
 
     console.log('Writing parsed ingredients to file...');
     fs.writeFileSync(path.join(__dirname, '../data', 'recipes_ingredients.json'), JSON.stringify(parsedRecipes, null, 2), 'utf8');
