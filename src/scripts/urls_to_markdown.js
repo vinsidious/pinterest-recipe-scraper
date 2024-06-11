@@ -91,8 +91,6 @@ async function main() {
                     if (markdown) {
                         results.push({ url, markdown });
                         successCount++;
-                    } else {
-                        results.push({ url, markdown: 'Failed to convert' });
                     }
                 });
             }
