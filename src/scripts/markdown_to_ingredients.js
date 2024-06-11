@@ -27,9 +27,6 @@ const limiter = new Bottleneck({
 
 // Function to calculate the number of tokens in a given text
 const calculateTokens = (text) => {
-  if (typeof text !== 'string') {
-    throw new TypeError('Expected input to be a string');
-  }
   const tokenizer = encoding_for_model('gpt-3.5-turbo');
   const tokens = tokenizer.encode(text);
   return tokens.length;
@@ -61,9 +58,19 @@ const splitMarkdown = (markdown, tokenLimit) => {
   const tokens = tokenizer.encode(markdown);
 
   const sections = [];
-  for (let i = 0; i < tokens.length; i += tokenLimit) {
-    const sectionTokens = tokens.slice(i, i + tokenLimit);
-    const section = tokenizer.decode(sectionTokens);
+  const buffer = 20; // Adding a buffer of 10 tokens to avoid exceeding the limit
+  const adjustedTokenLimit = tokenLimit - buffer;
+
+  for (let i = 0; i < tokens.length; i += adjustedTokenLimit) {
+    const sectionTokens = tokens.slice(i, i + adjustedTokenLimit);
+    let section = tokenizer.decode(sectionTokens);
+    if (section instanceof Uint8Array) {
+      section = new TextDecoder('utf-8').decode(section);
+    }
+    if (typeof section !== 'string') {
+      console.error(`Decoded section is not a string:`, section);
+      throw new TypeError('Expected section to be a string after decoding');
+    }
     sections.push(section);
   }
 
@@ -145,12 +152,10 @@ const processMarkdown = async () => {
       
       // Split content if it exceeds token limit
       const sections = tokenCount > 4097 - 150 ? splitMarkdown(filteredMarkdown, 4097 - 150) : [filteredMarkdown];
-      
-      if (sections.length > 1) {
-        console.log(`Content for ${recipe.url} is split into ${sections.length} sections to prevent context length errors.`);
-      }
 
       for (const section of sections) {
+        console.log(`Processing section with ${calculateTokens(section)} tokens for recipe: ${recipe.url}`);
+
         // Schedule the API call with a token cost
         await limiter.schedule({ weight: calculateTokens(section) }, async () => {
           const ingredients = await parseIngredients(section, recipe.url);
@@ -175,7 +180,7 @@ const processMarkdown = async () => {
     const minutes = Math.floor(duration / 60);
     const seconds = duration % 60;
     
-    console.log(`Total process time: ${minutes} minutes and ${seconds} seconds`);
+    console.log(`Total process time: ${minutes} minutes and ${seconds.toFixed(2)} seconds`);
     console.log(`Total rate limit errors: ${rateLimitErrors}`);
     console.log(`Total context length errors: ${contextLengthErrors}`);
   }
