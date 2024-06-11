@@ -1,5 +1,6 @@
 .env
 src/logs/markdown_error_log.json
+src/logs/filtered_content_log.json
 src/logs/api_error_log.json
 src/data/external_urls.json
 src/data/recipes_ingredients.json

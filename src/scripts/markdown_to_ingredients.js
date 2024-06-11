@@ -27,6 +27,9 @@ const limiter = new Bottleneck({
 
 // Function to calculate the number of tokens in a given text
 const calculateTokens = (text) => {
+  if (typeof text !== 'string') {
+    throw new TypeError('Expected input to be a string');
+  }
   const tokenizer = encoding_for_model('gpt-3.5-turbo');
   const tokens = tokenizer.encode(text);
   return tokens.length;
@@ -34,11 +37,22 @@ const calculateTokens = (text) => {
 
 // Function to filter non-essential content
 const filterContent = (markdown) => {
-  // Example: Remove images, scripts, and comments using regex
-  return markdown
+  const filtered = markdown
     .replace(/!\[.*?\]\(.*?\)/g, '') // Remove images
     .replace(/<script.*?>.*?<\/script>/g, '') // Remove scripts
     .replace(/<!--.*?-->/g, ''); // Remove comments
+
+  // Log filtered content
+  const removedContent = markdown.match(/!\[.*?\]\(.*?\)/g) || [];
+  removedContent.push(...(markdown.match(/<script.*?>.*?<\/script>/g) || []));
+  removedContent.push(...(markdown.match(/<!--.*?-->/g) || []));
+
+  if (removedContent.length > 0) {
+    const logPath = path.join(__dirname, '../logs', 'filtered_content_log.json');
+    fs.appendFileSync(logPath, JSON.stringify({ url: markdown.url, removedContent }, null, 2) + ',\n', 'utf8');
+  }
+
+  return filtered;
 };
 
 // Split content into sections that fit within the token limit
@@ -132,6 +146,10 @@ const processMarkdown = async () => {
       // Split content if it exceeds token limit
       const sections = tokenCount > 4097 - 150 ? splitMarkdown(filteredMarkdown, 4097 - 150) : [filteredMarkdown];
       
+      if (sections.length > 1) {
+        console.log(`Content for ${recipe.url} is split into ${sections.length} sections to prevent context length errors.`);
+      }
+
       for (const section of sections) {
         // Schedule the API call with a token cost
         await limiter.schedule({ weight: calculateTokens(section) }, async () => {
