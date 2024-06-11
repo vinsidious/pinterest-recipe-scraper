@@ -1,83 +1,107 @@
 # Pinterest Recipe Scraper
 
-This project is a Pinterest Recipe Scraper that extracts recipe URLs from a Pinterest board, converts them to markdown format, and parses the markdown to extract ingredients. 
+This project is a Pinterest Recipe Scraper that extracts recipe data from Pinterest boards, converts the data to Markdown format, and then extracts ingredient lists using the OpenAI API. The project is built using Node.js, Puppeteer for web scraping, and OpenAI's GPT-3.5 API for processing.
 
-## Project Structure
+## Table of Contents
+- [Project Overview](#project-overview)
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Logging](#logging)
+- [File Structure](#file-structure)
+- [Error Handling](#error-handling)
 
-pinterest-recipe-scraper/
-│
-├── src/
-│ ├── pinterest.js
-│ ├── urls_to_markdown.js
-│ └── markdown_to_ingredients.js
-│
-├── data/
-│ ├── external_urls.json
-│ ├── recipes_markdown.json
-│ └── recipes_ingredients.json
-│
-├── node_modules/
-├── package.json
-├── package-lock.json
-└── README.md
+## Project Overview
 
-## Prerequisites
+The Pinterest Recipe Scraper project automates the extraction of recipes from Pinterest boards. The extracted recipes are converted to Markdown format, filtered for non-essential content, and then split into sections if they exceed the token limit for OpenAI's API. The ingredient lists are extracted from the Markdown content using the OpenAI API.
 
-- Node.js (version 14 or later)
-- npm (Node package manager)
+## Features
+
+- Scrapes recipes from Pinterest boards.
+- Converts scraped recipes to Markdown format.
+- Filters out non-essential content (images, scripts, comments).
+- Splits content into sections to prevent exceeding token limits.
+- Extracts ingredient lists using OpenAI's GPT-3.5 API.
+- Logs errors and filtered content for review.
 
 ## Installation
 
 1. Clone the repository:
-   ```bash
-   git clone https://github.com/HScheer1210/pinterest-recipe-scraper.git
+   ```sh
+   git clone https://github.com/yourusername/pinterest-recipe-scraper.git
    cd pinterest-recipe-scraper
+   ```
 
 2. Install the dependencies:
-    ```bash
-    npm install
+   ```sh
+   npm install axios body-parser bottleneck dotenv express openai p-queue puppeteer redis tiktoken
+   ```
+
+3. Create a `.env` file in the root directory and add your OpenAI API key:
+   ```sh
+   OPENAI_API_KEY=your_openai_api_key
+   ```
 
 ## Usage
-1. Run the Pinterest scraper to get recipe URLs from a Pinterest board.
-    ```bash
-    node src/pinterest.js
 
-This will generate external_urls.json in the src/data directory.
+1. **Run the Server:**
+   Execute the `server.js` file to start the entire process.
+   ```sh
+   node server.js
+   ```
 
-2. Convert the URLs to markdown format.
-    ```bash
-    node src/urls_to_markdown.js
+## Configuration
 
-This will generate recipes_markdown.json in the src/data directory.
+### Environment Variables
 
-3. Parse the markdown to extract ingredients.
-    ```bash
-    node src/markdown_to_ingredients.js
+- `OPENAI_API_KEY`: Your OpenAI API key.
 
-This will generate recipes_ingredients.json in the src/data directory.
+### Puppeteer Configuration
 
-## Files
-    src/pinterest.js:
-    Fetches recipe URLs from a Pinterest board and saves them in external_urls.json.
+The Puppeteer configuration is set to launch a headless browser with a protocol timeout of 180 seconds.
 
-    src/urls_to_markdown.js: 
-    Converts the recipe URLs to markdown format and saves them in recipes_markdown.json.
+### Bottleneck Configuration
 
-    src/markdown_to_ingredients.js: 
-    Parses the markdown to extract ingredients and saves them in recipes_ingredients.json.
+The Bottleneck setup limits the concurrency of API requests and handles rate limiting.
 
-## Data
-    data/external_urls.json: 
-    Contains the list of recipe URLs fetched from Pinterest.
+## Logging
 
-    data/recipes_markdown.json: 
-    Contains the markdown content of the recipes.
+Logs are saved in the `logs` directory:
 
-    data/recipes_ingredients.json: 
-    Contains the extracted ingredients from the markdown.
+- `api_error_log.json`: Logs errors encountered during API requests (primarily rate limit errors and/or context length errors).
+- `filtered_content_log.json`: Logs content filtered out during preprocessing.
+- `markdown_error_log.json`: Logs errors encountered during Markdown conversion.
 
+## File Structure
 
-## Acknowledgements
-    Puppeteer for access to Convert URL to MarkDown
-    Lodash for utility functions
-    Axios for HTTP requests
+```
+pinterest-recipe-scraper/
+├── node_modules/
+├── package-lock.json
+├── package.json
+├── public/
+│   ├── index.html
+│   └── script.js
+├── README.md
+├──server.js
+├── src/
+│   ├── data/
+│   │   ├── external_urls.json
+│   │   ├── recipes_ingredients.json
+│   │   └── recipes_markdown.json
+│   ├── logs/
+│   │   ├── api_error_log.json
+│   │   ├── filtered_content_log.json
+│   │   └── markdown_error_log.json
+│   ├── scripts/
+│   │   ├── markdown_to_ingredients.js
+│   │   ├── pinterest.js
+│   └── └── urls_to_markdown.js
+├── .env
+└── README.md
+```
+
+## Error Handling
+
+Errors are logged with detailed messages and timestamps in the respective log files. The script retries API requests on rate limit errors with an exponential backoff strategy.
