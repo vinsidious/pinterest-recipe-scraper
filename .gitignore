@@ -5,3 +5,5 @@ src/logs/api_error_log.json
 src/data/external_urls.json
 src/data/recipes_ingredients.json
 src/data/recipes_markdown.json
+src/data/cookie.txt
+node_modules
