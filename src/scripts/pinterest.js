@@ -7,7 +7,14 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const COOKIE_PATH = path.join(__dirname, '../data/cookie.txt');
+
 async function getSessionCookie() {
+    if (fs.existsSync(COOKIE_PATH)) {
+        const cookieData = fs.readFileSync(COOKIE_PATH, 'utf8');
+        return cookieData.trim();
+    }
+
     const browser = await puppeteer.launch({ headless: false });
     const page = await browser.newPage();
 
@@ -15,7 +22,7 @@ async function getSessionCookie() {
 
     console.log('Please log in to Pinterest.');
 
-    await page.waitForNavigation({ waitUntil: 'networkidle2' });
+    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 0 });
 
     const cookies = await page.cookies();
     await browser.close();
@@ -26,6 +33,8 @@ async function getSessionCookie() {
     if (!sessionCookie) {
         throw new Error('Session cookie not found');
     }
+
+    fs.writeFileSync(COOKIE_PATH, sessionCookie);
 
     return sessionCookie;
 }

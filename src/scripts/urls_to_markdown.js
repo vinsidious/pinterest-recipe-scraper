@@ -9,7 +9,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Error log path
-const errorLogPath = path.join(__dirname, '../logs', 'markdown_error_log.json');
+const errorLogDir = path.join(__dirname, '../logs');
+const errorLogPath = path.join(errorLogDir, 'markdown_error_log.json');
+
+if (!fs.existsSync(errorLogDir)) {
+    fs.mkdirSync(errorLogDir, { recursive: true });
+}
+
+if (!fs.existsSync(errorLogPath)) {
+    fs.writeFileSync(errorLogPath, '[]');
+}
 const errorLog = [];
 
 function logError(url, error) {
