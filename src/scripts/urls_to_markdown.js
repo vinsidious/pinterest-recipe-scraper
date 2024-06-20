@@ -27,7 +27,7 @@ function logError(url, error) {
 }
 
 // Function to convert a URL to Markdown using the urltomarkdown API
-async function convertUrlToMarkdown(url) {
+async function convertUrlToMarkdown(url, retries = 5, backoff = 2500) {
     try {
         const encodedUrl = encodeURIComponent(url);
         const apiUrl = `https://urltomarkdown.herokuapp.com/?url=${encodedUrl}&title=true&links=false`;
@@ -44,6 +44,12 @@ async function convertUrlToMarkdown(url) {
                 'Referrer-Policy': 'strict-origin-when-cross-origin'
             }
         });
+
+        if (response.status === 429 && retries > 0) {
+            console.log(`Rate limited. Retrying in ${backoff}ms...`);
+            await new Promise(resolve => setTimeout(resolve, backoff));
+            return convertUrlToMarkdown(url, retries - 1, backoff * 2);
+        }
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
