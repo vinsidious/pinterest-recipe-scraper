@@ -27,7 +27,7 @@ function logError(url, error) {
 }
 
 // Function to convert a URL to Markdown using the urltomarkdown API
-async function convertUrlToMarkdown(url, retries = 5, backoff = 2500) {
+async function convertUrlToMarkdown(url, retries = 5) {
     try {
         const encodedUrl = encodeURIComponent(url);
         const apiUrl = `https://urltomarkdown.herokuapp.com/?url=${encodedUrl}&title=true&links=false`;
@@ -46,9 +46,11 @@ async function convertUrlToMarkdown(url, retries = 5, backoff = 2500) {
         });
 
         if (response.status === 429 && retries > 0) {
+            const retryAfter = response.headers.get('Retry-After');
+            const backoff = retryAfter ? parseInt(retryAfter, 10) * 1000 : 2500;
             console.log(`Rate limited. Retrying in ${backoff}ms...`);
             await new Promise(resolve => setTimeout(resolve, backoff));
-            return convertUrlToMarkdown(url, retries - 1, backoff * 2);
+            return convertUrlToMarkdown(url, retries - 1);
         }
 
         if (!response.ok) {
@@ -69,7 +71,11 @@ async function main() {
     const startTime = new Date();  // Start time
     const urls = JSON.parse(fs.readFileSync(path.join(__dirname, '../data', 'external_urls.json'), 'utf8'));
     const results = [];
-    const queue = new PQueue({ concurrency: 10 });  // Limit concurrency to 10 tasks at a time
+    const queue = new PQueue({ 
+        concurrency: 10,  // Limit concurrency to 10 tasks at a time
+        intervalCap: 75,  // Max 75 requests
+        interval: 60000   // Per minute
+    });
     let successCount = 0;
 
     for (const url of urls) {
